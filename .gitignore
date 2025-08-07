@@ -1,0 +1,8 @@
+### ROS2 ###
+# Служебные папки colcon
+build/
+install/
+log/
+# Бинарные и временные файлы
+*.mcap
+*.mcap
