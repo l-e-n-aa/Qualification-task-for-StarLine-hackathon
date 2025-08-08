@@ -4,7 +4,6 @@ from launch.actions import ExecuteProcess # чтобы воспроизвест�
 
 
 def generate_launch_description():
-    # bag_path = "/home/lena/python files/attempt/src/slam/bags/tb_office_v02_0.mcap" 
     return LaunchDescription([
         Node(
             package='pointcloud_to_laserscan',
@@ -13,7 +12,7 @@ def generate_launch_description():
             parameters=[{
                 'target_frame': 'base_link', # Система координат, в которую преобразуются данные
                 'transform_tolerance': 0.01,
-                'min_height': -0.5,
+                'min_height': -0.5, 
                 'max_height': 0.5,
                 'angle_min': -3.14,  
                 'angle_max': 3.14,   
@@ -21,8 +20,8 @@ def generate_launch_description():
                 'range_max': 50.0,
             }],
             remappings=[
-                ('cloud_in', '/livox/lidar'),
-                ('scan', '/scan')
+                ('cloud_in', '/livox/lidar'), # откуда читаем данные
+                ('scan', '/scan') # куда отправляем данные
             ]
         ),
 
