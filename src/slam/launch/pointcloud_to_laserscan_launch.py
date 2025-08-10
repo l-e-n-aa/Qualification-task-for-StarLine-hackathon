@@ -12,7 +12,8 @@ def generate_launch_description():
 
         ExecuteProcess(
             cmd=['ros2', 'bag', 'play', bag_file, '--clock'],
-            output='screen'
+            output='screen',
+            
         )
         ,
         Node(
@@ -28,7 +29,24 @@ def generate_launch_description():
                 {'angle_min': -3.14},   
                 {'angle_max': 3.14},    
                 {'alpha_increment': 0.0087},
-                {'scan_frame': 'livox'}
+                {'scan_frame': 'livox'},
+                {'use_sim_time': True}
+            ]
+        ),
+
+        Node(
+            package='slam_toolbox',
+            executable='async_slam_toolbox_node',
+            name='slam_toolbox',
+            output='screen',
+            parameters=[{
+                'use_sim_time': True,  # используем время из bag-файла
+                'map_frame': 'map',
+                'odom_frame': 'odom',
+                'base_frame': 'base_link'
+            }],
+            remappings=[
+                ('/scan', '/scan')  # подписываемся на топик со сканами
             ]
         ),
     ])
