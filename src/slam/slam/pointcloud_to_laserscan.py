@@ -41,7 +41,7 @@ class PointCloudToLaserScan(Node):
         angle_max = self.get_parameter('angle_max').value
         alpha_inc = self.get_parameter('angle_increment').value
         
-        num_readings = int((angle_max - angle_min) / alpha_inc) # рассчет считанных лучей в одном скане
+        num_readings = int(round((angle_max - angle_min) / alpha_inc)) # рассчет считанных лучей в одном скане
         
         scan = LaserScan() # создаём пустое сообщение
         scan.header = msg.header # Копирует временную метку и frame_id из имеющегося облака точек
