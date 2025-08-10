@@ -1,32 +1,34 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import ExecuteProcess # чтобы воспроизвести tb_office_v02_0.mcap
-
+from ament_index_python.packages import get_package_share_directory
+import os
 
 def generate_launch_description():
+    package_name = 'slam'
+    package_share = get_package_share_directory(package_name) # возвращает абсолютный путь к директории share
+    bag_file = os.path.join(package_share, 'bags', 'tb_office_v02_0.mcap') # собирает полный путь к bag файлу
     return LaunchDescription([
-        Node(
-            package='pointcloud_to_laserscan',
-            executable='pointcloud_to_laserscan_node',
-            name='pointcloud_to_laserscan',
-            parameters=[{
-                'target_frame': 'base_link', # Система координат, в которую преобразуются данные
-                'transform_tolerance': 0.01,
-                'min_height': -0.5, 
-                'max_height': 0.5,
-                'angle_min': -3.14,  
-                'angle_max': 3.14,   
-                'range_min': 0.1,
-                'range_max': 50.0,
-            }],
-            remappings=[
-                ('cloud_in', '/livox/lidar'), # откуда читаем данные
-                ('scan', '/scan') # куда отправляем данные
-            ]
-        ),
 
         ExecuteProcess(
-            cmd=['ros2', 'bag', 'play', '/home/lena/python files/attempt/src/slam/bags/tb_office_v02_0.mcap', '--clock'],
+            cmd=['ros2', 'bag', 'play', bag_file, '--clock'],
             output='screen'
         )
+        ,
+        Node(
+            package='slam',
+            executable='pointcloud_to_laserscan',
+            name='pc2_to_laserscan',
+            output='screen',
+            parameters=[
+                {'min_height': -0.1},
+                {'max_height': 0.1},
+                {'min_range': 0.1},
+                {'max_range': 10.0},
+                {'angle_min': -3.14},   
+                {'angle_max': 3.14},    
+                {'alpha_increment': 0.0087},
+                {'scan_frame': 'livox'}
+            ]
+        ),
     ])
