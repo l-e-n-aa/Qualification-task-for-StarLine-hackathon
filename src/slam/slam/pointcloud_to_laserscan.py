@@ -11,7 +11,7 @@ class PointCloudToLaserScan(Node):
         # Параметры 
         self.declare_parameter('min_height', -0.1) #(10 см) диапазон по z вниз
         self.declare_parameter('max_height', 0.1) # диапазон по z вверх 
-        self.declare_parameter('min_range', 0.1) # минимальное расстояние распознования точек
+        self.declare_parameter('min_range', 0.2) # минимальное расстояние распознования точек
         self.declare_parameter('max_range', 10.0) # максимальное расстояние распознования точек
         self.declare_parameter('angle_min', -3.14)  # секор обзора
         self.declare_parameter('angle_max', 3.14)   
