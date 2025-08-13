@@ -13,6 +13,8 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*_launch.py'))),
+        (os.path.join('share', package_name, 'rviz'), glob('rviz/*.rviz')),  # Копирует все .rviz файлы
+        (os.path.join('share', package_name, 'bags'), glob('bags/*.mcap')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
