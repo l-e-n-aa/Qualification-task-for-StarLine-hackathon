@@ -13,8 +13,9 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']), 
         (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*_launch.py'))),
-        (os.path.join('share', package_name, 'bags'), glob(os.path.join('bags', '*.mcap'))),
+        (os.path.join('share', package_name, 'tb_office_v02'), glob(os.path.join('tb_office_v02', '*.mcap'))),
         (os.path.join('share', package_name, 'rviz'), glob('rviz/*.rviz')),
+        (os.path.join('share', package_name), glob('*.csv')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -24,7 +25,7 @@ setup(
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': ['pointcloud_to_laserscan = slam.pointcloud_to_laserscan:main',
+        'console_scripts': ['pointcloud_to_laserscan = slam.pointcloud_to_laserscan:main', 'marker_publisher = slam.marker_publisher:main',
         ],
     },
 )

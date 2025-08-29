@@ -7,8 +7,9 @@ import os
 def generate_launch_description():
     package_name = 'slam'
     package_share = get_package_share_directory(package_name) # возвращает абсолютный путь к директории share
-    bag_file = os.path.join(package_share, 'bags', 'tb_office_v02_0.mcap') # собирает полный путь к bag файлу
+    bag_file = os.path.join(package_share, 'tb_office_v02', 'tb_office_v02_0.mcap') # собирает полный путь к bag файлу
     rviz_config = os.path.join(package_share, 'rviz', 'slam.rviz') # собирает полный путь к slam.rviz файлу
+    marker_file = os.path.join(package_share, 'marker_coordinates.csv')
     return LaunchDescription([
 
         ExecuteProcess(
@@ -48,6 +49,19 @@ def generate_launch_description():
             }],
             remappings=[
                 ('/scan', '/scan')  # подписываемся на топик со сканами
+            ]
+        ),
+
+        Node(
+            package='slam',
+            executable='marker_publisher',
+            name='marker_publisher',
+            output='screen',
+            parameters=[
+                {'marker_file': marker_file},
+                {'marker_topic': '/markers'},
+                {'marker_frame': 'map'},
+                {'use_sim_time': True}
             ]
         ),
 

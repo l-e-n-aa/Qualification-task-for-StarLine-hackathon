@@ -18,6 +18,7 @@ class PointCloudToLaserScan(Node):
         self.declare_parameter('angle_increment', 0.0087)  # (0.5°) угловой шаг между лучами 
         self.declare_parameter('scan_frame', 'livox') # система координат сканов
         
+        
         # подписка и публикация
         self.subscription = self.create_subscription(
             PointCloud2,
