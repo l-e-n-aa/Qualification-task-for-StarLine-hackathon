@@ -1,0 +1,21 @@
+* [33m1d482a7[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Add marker detection package
+* [33mf936f80[m organized the files
+* [33m98466bd[m Add files via upload
+* [33m43dcdd0[m added readme
+* [33mf18925c[m added automatic start of rviz
+* [33m2018444[m created a launch folder and changed setup.py
+* [33m190c30d[m Add files via upload
+* [33m611cd8a[m Add files via upload
+* [33md86e7a1[m Delete src/launch directory
+* [33mfdee41e[m Add files via upload
+* [33m3b225b1[m added rounding of the number of rays
+*   [33m79280a8[m Merge branch 'main' of https://github.com/465458/Qualification-task-for-StarLine-hackathon
+[32m|[m[33m\[m  
+[32m|[m * [33m7ed12e7[m Add files via upload
+* [33m|[m [33m8cc0bf8[m added a node publishing a map to the topic /map
+[33m|[m[33m/[m  
+* [33mbfd3d1b[m wrote a custom node for transform /PointCloud2 to /scan
+* [33m1f29d0d[m added some comments
+* [33m6fc5fc4[m created a launch file that transform point cloud from 2D to 3D
+* [33md475eca[m ROS2 project structure
+* [33m9384ef6[m ROS2 project structure
