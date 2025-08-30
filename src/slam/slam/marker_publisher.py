@@ -16,13 +16,14 @@ class MarkerPublisher(Node):
         self.declare_parameter('marker_topic', '/markers')
         self.declare_parameter('marker_frame', 'map')
         
+        
         # получение параметров
         marker_file = self.get_parameter('marker_file').value
         marker_topic = self.get_parameter('marker_topic').value
         self.marker_frame = self.get_parameter('marker_frame').value
         
         # полный путь к файлу
-        package_share_dir = get_package_share_directory('slam')
+        package_share_dir = get_package_share_directory('marker_detection')
         self.marker_file = os.path.join(package_share_dir, marker_file)
         
         # создаём публикатор маркеров
