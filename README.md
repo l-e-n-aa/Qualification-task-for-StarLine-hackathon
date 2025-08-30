@@ -51,3 +51,11 @@ source install/setup.bash
 ros2 launch slam pointcloud_to_laserscan_launch.py
 ```
 Данная команда открывает окно rviz2, в котором запустится визуализация построения 2D карты, с отображением центров маркеров.
+
+## Сохранение Карты
+После того как в терминале, в котором вы запускали `pointcloud_to_laserscan_launch.py`, отобразиться надпись "process has finished cleanly", можно сохранить получившуюся карту. Для этого откройте новый терминал и выполните:
+```
+source /opt/ros/humble/setup.bash
+ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "{name: {data: 'my_map'}}"
+```
+Карта будет сохранена в папке Qualification-task-for-StarLine-hackathon.
