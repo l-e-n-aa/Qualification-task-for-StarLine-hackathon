@@ -11,10 +11,21 @@
 
 ## Установка
 Все команды выполняются в терминале Linux.
+
 **Клонирование репозитория**
 ```
 git clone https://github.com/l-e-n-aa/Qualification-task-for-StarLine-hackathon.git
 cd Qualification-task-for-StarLine-hackathon
+```
+**Скачивание bag-файла**
+
+Скачайте папку tb_office_v02 перейдя по ссылке: https://disk.yandex.ru/d/XVCkAQLCmJwf3g.
+
+Распакуйте скачанный архив.
+
+Далее переместите tb_office_v02 в пакет slam:
+```
+mv ~/Downloads/tb_office_v02 ~/Qualification-task-for-StarLine-hackathon/src/slam/
 ```
 **Настройка окружения ROS2**
 ```
