@@ -55,6 +55,7 @@ ros2 launch slam pointcloud_to_laserscan_launch.py
 ## Сохранение Карты
 После того как в терминале, в котором вы запускали `pointcloud_to_laserscan_launch.py`, отобразиться надпись "process has finished cleanly", можно сохранить получившуюся карту. Для этого откройте новый терминал и выполните:
 ```
+cd Qualification-task-for-StarLine-hackathon
 source /opt/ros/humble/setup.bash
 ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "{name: {data: 'my_map'}}"
 ```
