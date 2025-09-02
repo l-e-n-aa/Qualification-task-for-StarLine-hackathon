@@ -1,0 +1,2 @@
+Перейдите в корень рабочего пространства и выполните команду `ros2 launch slam pointcloud_to_laserscan_launch.py` для запуска лаунч файла. 
+После того как в первом терминале вы увидите строку "[ros2-1] closing." откройте новое окно терминала и выполните команду `ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "{name: {data: 'my_map'}}"` для сохранения карты. Файлы `my_map.pgm` и `my_map.yaml` появятся в корне рабочего пространства. 
