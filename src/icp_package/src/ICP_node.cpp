@@ -124,7 +124,7 @@ private:
         // Ищем основные плоскости
         for (int i = 0; i < 3 && indices.size() > cloud_points.size() * 0.05; i++) {
             Plane plane = simple_plane_detect(indices, 100);
-            RCLCPP_DEBUG(rclcpp::get_logger("Cloud"), "\n\t\tFound plane: normal=(%.3f,%.3f,%.3f), points=%zu, d=%.3f",plane.normal.x(), plane.normal.y(), plane.normal.z(),plane.point_indices.size(), plane.coefficients[3]);
+            //RCLCPP_INFO(rclcpp::get_logger("Cloud"), "\n\t\tFound plane: normal=(%.3f,%.3f,%.3f), points=%zu, d=%.3f",plane.normal.x(), plane.normal.y(), plane.normal.z(),plane.point_indices.size(), plane.coefficients[3]);
 
             counter++;
             if(counter >= 1e2) break;
@@ -688,7 +688,7 @@ private:
             //return a.first.point_indices.size() > b.first.point_indices.size()z;
         });
 
-        RCLCPP_DEBUG(rclcpp::get_logger("Cloud"), "Found pairs: %zu", pairs.size());
+        RCLCPP_INFO(rclcpp::get_logger("Cloud"), "Found pairs: %zu", pairs.size());
         for(auto& [plane, plane2] : pairs) {
             RCLCPP_DEBUG(rclcpp::get_logger("Cloud"), "\n\tFound plane: normal=(%.3f,%.3f,%.3f), points=%zu, d=%.3f",plane.normal.x(), plane.normal.y(), plane.normal.z(),plane.point_indices.size(), plane.coefficients[3]);
             RCLCPP_DEBUG(rclcpp::get_logger("Cloud"), "\n\tFound plane2: normal=(%.3f,%.3f,%.3f), points=%zu, d=%.3f",plane2.normal.x(), plane2.normal.y(), plane2.normal.z(),plane2.point_indices.size(), plane2.coefficients[3]);
@@ -953,7 +953,7 @@ private:
                 return;
             }
             
-            RCLCPP_DEBUG(rclcpp::get_logger("ICP"), "Processing ICP %d/%d", i, cloud_count - 1);
+            RCLCPP_INFO(rclcpp::get_logger("ICP"), "Processing ICP %d/%d", i, cloud_count - 1);
             
             // Небольшая задержка для отладки
             if(i == cloud_count - 1) std::this_thread::sleep_for(2000ms);
@@ -988,11 +988,11 @@ private:
             
             if (prev_cloud.get_planes().size() >= 1 && current_cloud.get_planes().size() >= 1) {
                 // Используем plane-based ICP
-                RCLCPP_DEBUG(rclcpp::get_logger("ICP"), "Using plane-based ICP, cloud size: %zu", prev_cloud.get_points().size());
+                RCLCPP_INFO(rclcpp::get_logger("ICP"), "Using plane-based ICP, cloud size: %zu", prev_cloud.get_points().size());
                 incremental_tf = ICP_iterations_plane(prev_cloud, current_cloud);
             } else {
                 // Fallback на point-based ICP
-                RCLCPP_DEBUG(rclcpp::get_logger("ICP"), "Using point-based ICP (fallback)");
+                RCLCPP_INFO(rclcpp::get_logger("ICP"), "Using point-based ICP (fallback)");
                 std::vector<Eigen::Vector3d> current_points_no_floor = current_cloud.get_points_without_floor();
                 if (current_points_no_floor.size() >= 10000000000 && prev_tree) {
                     run_ICP_Iterations(prev_tree.get(), current_points_no_floor, incremental_tf, 30);
@@ -1119,6 +1119,7 @@ private:
 
     void process_loop() {
         int size = 0;
+        RCLCPP_INFO(rclcpp::get_logger("ICP"), "Filtreation initializided");
         {
             while(size == 0 && !stop_requested_) {
 
@@ -1338,7 +1339,7 @@ void wall_scan_sub(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
         get_transform_to_frame(msg, transform);
         filter.add_PointCloud(*msg, transform);
     } else {
-        //RCLCPP_WARN(this->get_logger(), "Transform not available for cloud, skipping");
+        RCLCPP_WARN(this->get_logger(), "Transform not available for cloud, skipping");
     }
 }
 
