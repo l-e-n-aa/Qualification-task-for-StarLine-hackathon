@@ -12,6 +12,8 @@
 #include <random>
 #include <algorithm>
 #include <limits>
+#include <unordered_map>
+#include <tuple>
 
 // Библиотеки для работы с математикой и линейной алгеброй
 #include <Eigen/Dense>
@@ -124,7 +126,7 @@ private:
         // Ищем основные плоскости
         for (int i = 0; i < 3 && indices.size() > cloud_points.size() * 0.05; i++) {
             Plane plane = simple_plane_detect(indices, 100);
-            //RCLCPP_INFO(rclcpp::get_logger("Cloud"), "\n\t\tFound plane: normal=(%.3f,%.3f,%.3f), points=%zu, d=%.3f",plane.normal.x(), plane.normal.y(), plane.normal.z(),plane.point_indices.size(), plane.coefficients[3]);
+            RCLCPP_DEBUG(rclcpp::get_logger("Cloud"), "\n\t\tFound plane: normal=(%.3f,%.3f,%.3f), points=%zu, d=%.3f",plane.normal.x(), plane.normal.y(), plane.normal.z(),plane.point_indices.size(), plane.coefficients[3]);
 
             counter++;
             if(counter >= 1e2) break;
@@ -688,7 +690,7 @@ private:
             //return a.first.point_indices.size() > b.first.point_indices.size()z;
         });
 
-        RCLCPP_INFO(rclcpp::get_logger("Cloud"), "Found pairs: %zu", pairs.size());
+        RCLCPP_DEBUG(rclcpp::get_logger("Cloud"), "Found pairs: %zu", pairs.size());
         for(auto& [plane, plane2] : pairs) {
             RCLCPP_DEBUG(rclcpp::get_logger("Cloud"), "\n\tFound plane: normal=(%.3f,%.3f,%.3f), points=%zu, d=%.3f",plane.normal.x(), plane.normal.y(), plane.normal.z(),plane.point_indices.size(), plane.coefficients[3]);
             RCLCPP_DEBUG(rclcpp::get_logger("Cloud"), "\n\tFound plane2: normal=(%.3f,%.3f,%.3f), points=%zu, d=%.3f",plane2.normal.x(), plane2.normal.y(), plane2.normal.z(),plane2.point_indices.size(), plane2.coefficients[3]);
@@ -753,9 +755,9 @@ private:
             double angle = get_rotation_angle(local_transform.getRotation());
             
             if (std::abs(angle) > MAX_ROTATION_ANGLE) {
-                RCLCPP_WARN(rclcpp::get_logger("ICP"), 
+                /*RCLCPP_WARN(rclcpp::get_logger("ICP"), 
                     "Rotation angle %.3f rad (%.1f°) exceeds limit, clamping to %.3f rad",
-                    angle, angle * 180/M_PI, MAX_ROTATION_ANGLE);
+                    angle, angle * 180/M_PI, MAX_ROTATION_ANGLE);*/
                 continue;
                 // Ограничиваем угол вращения
                 tf2::Quaternion limited_rot = local_transform.getRotation();
@@ -766,9 +768,9 @@ private:
             // Проверяем величину трансляции
             double translation_length = local_transform.getOrigin().length();
             if (translation_length > MAX_TRANSLATION) {
-                RCLCPP_WARN(rclcpp::get_logger("ICP"), 
+                /*RCLCPP_WARN(rclcpp::get_logger("ICP"), 
                     "Translation length %.3f exceeds limit, clamping to %.3f",
-                    translation_length, MAX_TRANSLATION);
+                    translation_length, MAX_TRANSLATION);*/
                 continue;
                 // Ограничиваем трансляцию
                 tf2::Vector3 limited_translation = local_transform.getOrigin().normalized() * MAX_TRANSLATION;
@@ -953,7 +955,7 @@ private:
                 return;
             }
             
-            RCLCPP_INFO(rclcpp::get_logger("ICP"), "Processing ICP %d/%d", i, cloud_count - 1);
+            RCLCPP_DEBUG(rclcpp::get_logger("ICP"), "Processing ICP %d/%d", i, cloud_count - 1);
             
             // Небольшая задержка для отладки
             if(i == cloud_count - 1) std::this_thread::sleep_for(2000ms);
@@ -988,11 +990,11 @@ private:
             
             if (prev_cloud.get_planes().size() >= 1 && current_cloud.get_planes().size() >= 1) {
                 // Используем plane-based ICP
-                RCLCPP_INFO(rclcpp::get_logger("ICP"), "Using plane-based ICP, cloud size: %zu", prev_cloud.get_points().size());
+                RCLCPP_DEBUG(rclcpp::get_logger("ICP"), "Using plane-based ICP, cloud size: %zu", prev_cloud.get_points().size());
                 incremental_tf = ICP_iterations_plane(prev_cloud, current_cloud);
             } else {
                 // Fallback на point-based ICP
-                RCLCPP_INFO(rclcpp::get_logger("ICP"), "Using point-based ICP (fallback)");
+                RCLCPP_DEBUG(rclcpp::get_logger("ICP"), "Using point-based ICP (fallback)");
                 std::vector<Eigen::Vector3d> current_points_no_floor = current_cloud.get_points_without_floor();
                 if (current_points_no_floor.size() >= 10000000000 && prev_tree) {
                     run_ICP_Iterations(prev_tree.get(), current_points_no_floor, incremental_tf, 30);
@@ -1047,6 +1049,7 @@ private:
             }
             
             // Публикуем промежуточный результат
+            filter_duplicates_with_intensity(wall_result);
             publish_result();
             //std::this_thread::sleep_for(1000ms);
             
@@ -1078,6 +1081,266 @@ private:
         }
         
         processing_ = false;
+    }
+
+    double voxel_size_ = 0.0001;
+    bool use_radius_filter_ = false;
+    double radius_ = 0.1;
+    int min_neighbors_ = 2;
+    bool use_intensity_averaging_ = false;
+
+    // Структура для хранения точки с интенсивностью
+    struct PointWithIntensity {
+        Eigen::Vector3d point;
+        float intensity;
+        
+        PointWithIntensity(const Eigen::Vector3d& p, float i) : point(p), intensity(i) {}
+        PointWithIntensity() : point(Eigen::Vector3d::Zero()), intensity(0.0f) {}
+    };
+
+    // Хэш-функция для tuple<int, int, int>
+    struct TupleHash {
+        size_t operator()(const std::tuple<int, int, int>& key) const {
+            auto [x, y, z] = key;
+            return std::hash<int>()(x) ^ (std::hash<int>()(y) << 1) ^ (std::hash<int>()(z) << 2);
+        }
+    };
+
+    // Метод для преобразования PointCloud2 в вектор точек с интенсивностью
+    std::vector<PointWithIntensity> convert_PC_to_vector_with_intensity(const sensor_msgs::msg::PointCloud2& PC) {
+        std::vector<PointWithIntensity> vector;
+        if (PC.width == 0) return vector;
+        
+        vector.reserve(PC.width);
+        
+        sensor_msgs::PointCloud2ConstIterator<float> iter_x(PC, "x");
+        sensor_msgs::PointCloud2ConstIterator<float> iter_y(PC, "y");
+        sensor_msgs::PointCloud2ConstIterator<float> iter_z(PC, "z");
+        sensor_msgs::PointCloud2ConstIterator<float> iter_intensity(PC, "intensity");
+        
+        for (; iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z, ++iter_intensity) {
+            if (std::isfinite(iter_x[0]) && std::isfinite(iter_y[0]) && std::isfinite(iter_z[0])) {
+                vector.emplace_back(
+                    Eigen::Vector3d(iter_x[0], iter_y[0], iter_z[0]),
+                    iter_intensity[0]
+                );
+            }
+        }
+        
+        return vector;
+    }
+
+    // Метод для преобразования вектора точек с интенсивностью в PointCloud2
+    sensor_msgs::msg::PointCloud2 convert_vector_to_PC_with_intensity(
+        const std::vector<PointWithIntensity>& points, 
+        const rclcpp::Time& stamp) {
+        
+        sensor_msgs::msg::PointCloud2 cloud;
+        
+        // Настройка заголовка
+        cloud.header.stamp = stamp;
+        cloud.header.frame_id = "map";
+        
+        // Настройка полей
+        cloud.height = 1;
+        cloud.width = points.size();
+        cloud.is_bigendian = false;
+        cloud.is_dense = true;
+        
+        // Определение полей (x, y, z, intensity)
+        sensor_msgs::PointCloud2Modifier modifier(cloud);
+        modifier.setPointCloud2Fields(4,
+            "x", 1, sensor_msgs::msg::PointField::FLOAT32,
+            "y", 1, sensor_msgs::msg::PointField::FLOAT32,
+            "z", 1, sensor_msgs::msg::PointField::FLOAT32,
+            "intensity", 1, sensor_msgs::msg::PointField::FLOAT32);
+        
+        // Подготовка данных
+        modifier.resize(points.size());
+        
+        // Заполнение через итератор
+        sensor_msgs::PointCloud2Iterator<float> iter_x(cloud, "x");
+        sensor_msgs::PointCloud2Iterator<float> iter_y(cloud, "y");
+        sensor_msgs::PointCloud2Iterator<float> iter_z(cloud, "z");
+        sensor_msgs::PointCloud2Iterator<float> iter_intensity(cloud, "intensity");
+        
+        for (size_t i = 0; i < points.size(); ++i, ++iter_x, ++iter_y, ++iter_z, ++iter_intensity) {
+            *iter_x = static_cast<float>(points[i].point.x());
+            *iter_y = static_cast<float>(points[i].point.y());
+            *iter_z = static_cast<float>(points[i].point.z());
+            *iter_intensity = points[i].intensity;
+        }
+        
+        return cloud;
+    }
+
+    // Воксельная фильтрация с сохранением интенсивности
+    std::vector<PointWithIntensity> voxel_filter_with_intensity(
+        const std::vector<PointWithIntensity>& points, 
+        double voxel_size) {
+        
+        if (points.empty() || voxel_size <= 0.0) return points;
+
+        // Создаем воксельную сетку с использованием кастомного хэша
+        std::unordered_map<std::tuple<int, int, int>, PointWithIntensity, TupleHash> voxel_grid;
+        
+        for (const auto& point_data : points) {
+            const auto& point = point_data.point;
+            
+            // Вычисляем индексы вокселя
+            int x_idx = static_cast<int>(std::floor(point.x() / voxel_size));
+            int y_idx = static_cast<int>(std::floor(point.y() / voxel_size));
+            int z_idx = static_cast<int>(std::floor(point.z() / voxel_size));
+            
+            auto voxel_key = std::make_tuple(x_idx, y_idx, z_idx);
+            
+            // Если воксель еще не занят, сохраняем точку
+            if (voxel_grid.find(voxel_key) == voxel_grid.end()) {
+                voxel_grid[voxel_key] = point_data;
+            }
+        }
+        
+        // Собираем отфильтрованные точки
+        std::vector<PointWithIntensity> filtered_points;
+        filtered_points.reserve(voxel_grid.size());
+        
+        for (const auto& [voxel, point_data] : voxel_grid) {
+            filtered_points.push_back(point_data);
+        }
+        
+        return filtered_points;
+    }
+
+    // Воксельная фильтрация с усреднением интенсивности
+    std::vector<PointWithIntensity> voxel_filter_with_averaged_intensity(
+        const std::vector<PointWithIntensity>& points, 
+        double voxel_size) {
+        
+        if (points.empty() || voxel_size <= 0.0) return points;
+
+        // Структура для хранения суммы точек и интенсивности в вокселе
+        struct VoxelData {
+            Eigen::Vector3d point_sum = Eigen::Vector3d::Zero();
+            float intensity_sum = 0.0f;
+            int count = 0;
+            
+            PointWithIntensity get_averaged_point() const {
+                return PointWithIntensity(point_sum / count, intensity_sum / count);
+            }
+        };
+
+        // Используем кастомный хэш
+        std::unordered_map<std::tuple<int, int, int>, VoxelData, TupleHash> voxel_grid;
+        
+        for (const auto& point_data : points) {
+            const auto& point = point_data.point;
+            
+            // Вычисляем индексы вокселя
+            int x_idx = static_cast<int>(std::floor(point.x() / voxel_size));
+            int y_idx = static_cast<int>(std::floor(point.y() / voxel_size));
+            int z_idx = static_cast<int>(std::floor(point.z() / voxel_size));
+            
+            auto voxel_key = std::make_tuple(x_idx, y_idx, z_idx);
+            
+            // Добавляем точку в воксель
+            auto& voxel_data = voxel_grid[voxel_key];
+            voxel_data.point_sum += point;
+            voxel_data.intensity_sum += point_data.intensity;
+            voxel_data.count++;
+        }
+        
+        // Собираем усредненные точки
+        std::vector<PointWithIntensity> filtered_points;
+        filtered_points.reserve(voxel_grid.size());
+        
+        for (const auto& [voxel, voxel_data] : voxel_grid) {
+            filtered_points.push_back(voxel_data.get_averaged_point());
+        }
+        
+        return filtered_points;
+    }
+
+    // Радиальная фильтрация с сохранением интенсивности
+    std::vector<PointWithIntensity> radius_outlier_filter_with_intensity(
+        const std::vector<PointWithIntensity>& points, 
+        double radius = 0.1, 
+        int min_neighbors = 2) {
+        
+        if (points.empty()) return points;
+        
+        // Создаем вектор только с координатами для построения KD-дерева
+        std::vector<Eigen::Vector3d> points_coords;
+        points_coords.reserve(points.size());
+        for (const auto& point_data : points) {
+            points_coords.push_back(point_data.point);
+        }
+        
+        // Строим KD-дерево для быстрого поиска соседей
+        auto kd_tree = build_kdtree(points_coords);
+        
+        std::vector<PointWithIntensity> filtered_points;
+        filtered_points.reserve(points.size());
+        
+        // Для каждой точки ищем соседей в радиусе
+        for (size_t i = 0; i < points.size(); ++i) {
+            const auto& point_data = points[i];
+            int neighbor_count = 0;
+            
+            // Функция для подсчета соседей
+            std::function<void(const KDNode*, const Eigen::Vector3d&, double, int&)> count_neighbors =
+                [&](const KDNode* node, const Eigen::Vector3d& query, double radius_sq, int& count) {
+                    if (!node) return;
+                    
+                    double dist_sq = (query - node->point).squaredNorm();
+                    if (dist_sq <= radius_sq && dist_sq > 0.0) { // Исключаем саму точку
+                        count++;
+                    }
+                    
+                    double axis_diff = query[node->axis] - node->point[node->axis];
+                    bool go_left = axis_diff <= 0;
+                    
+                    count_neighbors(go_left ? node->left.get() : node->right.get(), 
+                                  query, radius_sq, count);
+                    
+                    if (axis_diff * axis_diff < radius_sq) {
+                        count_neighbors(go_left ? node->right.get() : node->left.get(), 
+                                      query, radius_sq, count);
+                    }
+                };
+            
+            double radius_sq = radius * radius;
+            count_neighbors(kd_tree.get(), point_data.point, radius_sq, neighbor_count);
+            
+            // Сохраняем точку, если у нее достаточно соседей
+            if (neighbor_count >= min_neighbors) {
+                filtered_points.push_back(point_data);
+            }
+        }
+        
+        return filtered_points;
+    }
+
+    // Основной метод фильтрации с сохранением интенсивности
+    void filter_duplicates_with_intensity(sensor_msgs::msg::PointCloud2& cloud, double voxel_size = 0.05) {
+        if (cloud.width == 0) return;
+
+        auto points_with_intensity = convert_PC_to_vector_with_intensity(cloud);
+        std::vector<PointWithIntensity> filtered_points;
+
+        if (use_intensity_averaging_) {
+            // Используем усреднение интенсивности
+            filtered_points = voxel_filter_with_averaged_intensity(points_with_intensity, voxel_size);
+        } else {
+            // Используем первую точку в вокселе
+            filtered_points = voxel_filter_with_intensity(points_with_intensity, voxel_size);
+        }
+
+        if (use_radius_filter_) {
+            // Дополнительная радиальная фильтрация
+            filtered_points = radius_outlier_filter_with_intensity(filtered_points, radius_, min_neighbors_);
+        }
+
+        cloud = convert_vector_to_PC_with_intensity(filtered_points, rclcpp::Time(cloud.header.stamp));
     }
 };
 
@@ -1119,7 +1382,6 @@ private:
 
     void process_loop() {
         int size = 0;
-        RCLCPP_INFO(rclcpp::get_logger("ICP"), "Filtreation initializided");
         {
             while(size == 0 && !stop_requested_) {
 
@@ -1339,7 +1601,7 @@ void wall_scan_sub(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
         get_transform_to_frame(msg, transform);
         filter.add_PointCloud(*msg, transform);
     } else {
-        RCLCPP_WARN(this->get_logger(), "Transform not available for cloud, skipping");
+        //RCLCPP_WARN(this->get_logger(), "Transform not available for cloud, skipping");
     }
 }
 
