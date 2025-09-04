@@ -9,6 +9,9 @@
 - **ROS 2**: дистрибутив Humble  
 - **Python**: 3.10 или выше
 
+Для установки ROS 2 вы можете воспользоваться данной статьёй:
+https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html
+
 ## Установка
 Все команды выполняются в терминале Linux.
 
@@ -40,7 +43,7 @@ rosdep install -i --from-path src --rosdistro humble -y
 ```
 colcon build
 ```
-**Настройкао окрузжения рабочего пространства**
+**Настройка окружения рабочего пространства**
 ```
 source install/setup.bash
 ```
