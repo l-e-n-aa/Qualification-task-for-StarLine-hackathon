@@ -9,10 +9,51 @@
 - **ROS 2**: дистрибутив Humble  
 - **Python**: 3.10 или выше
 
-Для установки ROS 2 вы можете воспользоваться данной статьёй:
+**Для установки ROS 2** вы можете воспользоваться данной статьёй:
 https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html
 
-## Установка
+Так же вам понадобятся дополнительные пакеты ROS 2 и Python, для их установки выполните следующие команды:
+
+**Настройка окружения ROS2 и обновление apt**
+```
+source /opt/ros/humble/setup.bash
+sudo apt update
+```
+**Установка python-библиотек**
+```
+sudo apt install -y \
+  python3-numpy
+```
+**Установка инструментов для сборки**
+```
+sudo apt install -y \
+  build-essential cmake \
+  python3-colcon-common-extensions python3-rosdep python3-argcomplete
+```
+**Установка ROS-пакетов**
+```
+sudo apt install -y \
+  ros-humble-rclpy \
+  ros-humble-rclcpp \
+  ros-humble-rviz2 \
+  ros-humble-sensor-msgs \
+  ros-humble-geometry-msgs \
+  ros-humble-visualization-msgs \
+  ros-humble-std-msgs \
+  ros-humble-tf2 \
+  ros-humble-tf2-ros \
+  ros-humble-tf2-geometry-msgs \
+  ros-humble-tf2-sensor-msgs \
+  ros-humble-ros2bag \
+  ros-humble-rosbag2-storage-mcap
+```
+**Настройте rosdep**
+```
+sudo rosdep init 2>/dev/null || true
+rosdep update
+```
+
+## Установка и начтройка репозитория
 Все команды выполняются в терминале Linux.
 
 **Клонирование репозитория**
